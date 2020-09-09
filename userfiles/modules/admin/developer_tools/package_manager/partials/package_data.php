@@ -1,5 +1,7 @@
-<?php only_admin_access();
-
+<?php
+if (!user_can_access('module.marketplace.index')) {
+    return;
+}
 
 $is_core_update = false;
 

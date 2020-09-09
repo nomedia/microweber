@@ -407,6 +407,9 @@ class CheckoutManager
             $payment_currency = get_option('payment_currency', 'payments');
             $payment_currency_rate = get_option('payment_currency_rate', 'payments');
 
+            if (!isset($place_order['payment_currency'])) {
+            $place_order['payment_currency'] = $place_order['currency'];
+            }
 
             if ($payment_currency and $payment_currency != $currencyCode) {
 
@@ -505,7 +508,7 @@ class CheckoutManager
                 }
 
 
-                $findCustomer = false;
+              /*  $findCustomer = false;
                 $findCustomerByEmail = Customer::where('email', $data['email'])->first();
                 if ($findCustomerByEmail) {
                     $findCustomer =  $findCustomerByEmail;
@@ -584,6 +587,7 @@ class CheckoutManager
                         'quantity'=>$cartItem['qty'],
                     ]);
                 }
+              */
 
                 $ord = $this->app->shop_manager->place_order($place_order);
                 $place_order['id'] = $ord;
@@ -898,7 +902,12 @@ class CheckoutManager
 
         $data['payment_gw'] = str_replace('..', '', $data['payment_gw']);
 
-        $hostname = $this->get_domain_from_str($_SERVER['REMOTE_ADDR']);
+
+
+        $client_ip = user_ip();
+
+        $hostname = $this->get_domain_from_str($client_ip);
+
 
         $payment_verify_token = $this->app->database_manager->escape_string($payment_verify_token);
         $table = $this->tables['cart_orders'];

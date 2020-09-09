@@ -1,22 +1,34 @@
 <?php
+
+
 function user_ip()
 {
-    if (!defined('MW_USER_IP')) {
-        if (isset($_SERVER["HTTP_CF_CONNECTING_IP"])) {
-            define('MW_USER_IP', $_SERVER['HTTP_CF_CONNECTING_IP']);
-        } else if (isset($_SERVER['REMOTE_ADDR'])) {
-            define('MW_USER_IP', $_SERVER['REMOTE_ADDR']);
-        } else {
-            define('MW_USER_IP', '127.0.0.1');
-        }
+    $ipaddress = '127.0.0.1';
+
+    if (isset($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        $ipaddress = $_SERVER['HTTP_CF_CONNECTING_IP'];
+    }  else if (isset($_SERVER['HTTP_CLIENT_IP'])) {
+        $ipaddress = $_SERVER['HTTP_CLIENT_IP'];
+    } else if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $ipaddress = $_SERVER['HTTP_X_FORWARDED_FOR'];
+    } else if (isset($_SERVER['HTTP_X_FORWARDED'])) {
+        $ipaddress = $_SERVER['HTTP_X_FORWARDED'];
+    } else if (isset($_SERVER['HTTP_FORWARDED_FOR'])) {
+        $ipaddress = $_SERVER['HTTP_FORWARDED_FOR'];
+    } else if (isset($_SERVER['HTTP_FORWARDED'])) {
+        $ipaddress = $_SERVER['HTTP_FORWARDED'];
+    } else if (isset($_SERVER['HTTP_X_CLUSTER_CLIENT_IP'])) {
+        $ipaddress = $_SERVER['HTTP_X_CLUSTER_CLIENT_IP'];
+    } else if (isset($_SERVER['REMOTE_ADDR'])) {
+        $ipaddress = $_SERVER['REMOTE_ADDR'];
     }
 
-    return MW_USER_IP;
+    return $ipaddress;
 }
 
 
 if (!defined('MW_USER_IP')) {
-    user_ip();
+    define('MW_USER_IP', user_ip());
 }
 
 
@@ -96,7 +108,6 @@ function user_social_login($params)
 {
     return mw()->user_manager->social_login($params);
 }
-
 
 
 function logout()
@@ -196,9 +207,17 @@ function user_id()
     return mw()->user_manager->id();
 }
 
-function has_access($function_name)
+function has_access($function_name = '')
 {
     return mw()->user_manager->has_access($function_name);
+}
+
+function must_have_access($permission = '')
+{
+    if (!user_can_access($permission)) {
+        $file = debug_backtrace()[0]['file'];
+        mw_error('Permission denied! You dont have access to see this page. <br />File:' . $file);
+    }
 }
 
 function only_admin_access()
@@ -288,4 +307,66 @@ function get_users($params = false)
 function get_user($id = false)
 {
     return mw()->user_manager->get($id);
+}
+
+
+function user_can_access($permission)
+{
+
+    $user = \Illuminate\Support\Facades\Auth::user();
+    if (!$user) {
+        return false;
+    }
+    if ($user->is_admin == 1) {
+        return true;
+    }
+
+    return $user->can($permission);
+}
+
+function module_permissions($module)
+{
+    return \MicroweberPackages\Role\Repositories\Permission::generateModulePermissionsSlugs($module);
+}
+
+function user_can_destroy_module($module)
+{
+    $permissions = \MicroweberPackages\Role\Repositories\Permission::generateModulePermissionsSlugs($module);
+
+    $user = \Illuminate\Support\Facades\Auth::user();
+    if (!$user) {
+        return false;
+    }
+
+    if ($user->is_admin == 1) {
+        return true;
+    }
+
+    if ($user->can($permissions['destroy'])) {
+        return true;
+    }
+
+    return false;
+}
+
+function user_can_view_module($module)
+{
+
+    $permissions = \MicroweberPackages\Role\Repositories\Permission::generateModulePermissionsSlugs($module);
+
+    $user = \Illuminate\Support\Facades\Auth::user();
+    if (!$user) {
+        return false;
+    }
+
+    if ($user->is_admin == 1) {
+        return true;
+    }
+
+    if ($user->can($permissions['index'])) {
+        return true;
+    }
+
+    return false;
+
 }

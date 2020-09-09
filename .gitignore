@@ -21,7 +21,6 @@ phpinfo.php
 dwsync.xml
 /userfiles/backup
 /userfiles/*.log
-/config/app.php
 /config/database.php
 /storage
 /storage/.gitignore
@@ -46,3 +45,5 @@ node_modules/
 /run-build.sh
 /userfiles/templates
 /phpunit-5.7.27.phar
+/bootstrap/cache/services.php
+/bootstrap/cache/packages.php

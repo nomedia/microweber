@@ -3,8 +3,8 @@
 namespace MicroweberPackages\Role\Http\Controllers\Admin;
 
 use MicroweberPackages\App\Http\Controllers\AdminController;
+use MicroweberPackages\Role\Repositories\Permission;
 use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
 use JavaScript;
 
@@ -28,7 +28,7 @@ class RolesController extends AdminController
      */
     public function index(Request $request)
     {
-        $roles = Role::all();
+        $roles = Role::with('users')->get();
 
         return $this->view('role::admin.roles.index', compact('roles'));
     }
@@ -40,9 +40,10 @@ class RolesController extends AdminController
      */
     public function create()
     {
-        $permissions = Permission::get()->pluck('name', 'name');
+        $selectedPermissions = array();
+        $permissionGroups = Permission::all();
 
-        return $this->view('role::admin.roles.create', compact('permissions'));
+        return $this->view('role::admin.roles.edit', compact('permissionGroups', 'selectedPermissions'));
     }
 
     /**
@@ -74,17 +75,17 @@ class RolesController extends AdminController
      */
     public function edit($id)
     {
-        $permissions = Permission::get()->pluck('name', 'name');
-
+        $permissions = Permission::all();
         $role = Role::findOrFail($id);
+        $permissionGroups = Permission::all();
 
-        $selectedPermissions = $role->permissions()->pluck('name');
+        $selectedPermissions = $role->permissions()->pluck('name')->toArray();
 
-        JavaScript::put([
-            'foo' => $selectedPermissions
-        ]);
+        /*  JavaScript::put([
+              'foo' => $selectedPermissions
+          ]);*/
 
-        return view('admin.roles.edit', compact('role', 'permissions', 'selectedPermissions'));
+        return $this->view('role::admin.roles.edit', compact('role', 'permissions', 'selectedPermissions', 'permissionGroups'));
     }
 
     /**
@@ -96,8 +97,10 @@ class RolesController extends AdminController
      */
     public function update(Request $request, $id)
     {
+        // TODO
+
         $request->validate([
-            'name' => 'required|unique:roles|max:20',
+            'name' => 'required|max:20',//unique:roles
             'permission' => 'required',
         ]);
 
@@ -106,9 +109,20 @@ class RolesController extends AdminController
         $permissions = $request->input('permission') ? $request->input('permission') : [];
         $role->syncPermissions($permissions);
 
-        return redirect()->route('admin.roles.index');
+        return redirect()->route('roles.index');
     }
 
+    public function cloneRole(Request $request)
+    {
+        $oldRole = Role::with('permissions')->find($request->id);
+
+        $role = Role::create([
+            'name' => $oldRole->name . ' (dublicate)',
+        ]);
+        $role->givePermissionTo($oldRole->permissions);
+
+        return redirect(route('roles.edit', $role->id))->with('status', 'Role is cloned.');
+    }
 
     /**
      * Remove Role from storage.

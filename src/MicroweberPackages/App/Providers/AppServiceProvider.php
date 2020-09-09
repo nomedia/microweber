@@ -2,7 +2,9 @@
 
 namespace MicroweberPackages\App\Providers;
 
+use AlternativeLaravelCache\Provider\AlternativeCacheStoresServiceProvider;
 use Illuminate\Foundation\AliasLoader;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use MicroweberPackages\App\Managers\Helpers\Lang;
 use MicroweberPackages\App\Utils\Parser;
@@ -24,8 +26,8 @@ use MicroweberPackages\Invoice\InvoicesManagerServiceProvider;
 use MicroweberPackages\Media\Media;
 use MicroweberPackages\Media\MediaManagerServiceProvider;
 use MicroweberPackages\Menu\MenuManagerServiceProvider;
-use MicroweberPackages\Module\ModuleManager;
 use MicroweberPackages\Module\ModuleServiceProvider;
+use MicroweberPackages\Multilanguage\MultilanguageServiceProvider;
 use MicroweberPackages\Option\OptionManagerServiceProvider;
 use MicroweberPackages\Backup\BackupManagerServiceProvider;
 
@@ -35,7 +37,11 @@ use MicroweberPackages\Checkout\CheckoutManagerServiceProvider;
 use MicroweberPackages\Client\ClientsManagerServiceProvider;
 use MicroweberPackages\Currency\CurrencyServiceProvider;
 use MicroweberPackages\Order\OrderManagerServiceProvider;
+use MicroweberPackages\Page\PageServiceProvider;
 use MicroweberPackages\Payment\PaymentServiceProvider;
+use MicroweberPackages\Product\ProductServiceProvider;
+use MicroweberPackages\ContentData\ContentDataServiceProvider;
+use MicroweberPackages\CustomField\CustomFieldServiceProvider;
 use MicroweberPackages\Role\RoleServiceProvider;
 use MicroweberPackages\Shop\ShopManagerServiceProvider;
 use MicroweberPackages\Tax\TaxManagerServiceProvider;
@@ -63,6 +69,8 @@ class AppServiceProvider extends ServiceProvider {
         /*
           * Laravel Framework Service Providers...
           */
+      //  \Illuminate\Session\SessionServiceProvider::class,
+      //  \Illuminate\Filesystem\FilesystemServiceProvider::class,
         \Illuminate\Auth\AuthServiceProvider::class,
         \Illuminate\Broadcasting\BroadcastServiceProvider::class,
         \Illuminate\Bus\BusServiceProvider::class,
@@ -71,7 +79,6 @@ class AppServiceProvider extends ServiceProvider {
         \Illuminate\Cookie\CookieServiceProvider::class,
         \Illuminate\Database\DatabaseServiceProvider::class,
         \Illuminate\Encryption\EncryptionServiceProvider::class,
-        \Illuminate\Filesystem\FilesystemServiceProvider::class,
         \Illuminate\Foundation\Providers\FoundationServiceProvider::class,
         \Illuminate\Hashing\HashServiceProvider::class,
         \Illuminate\Mail\MailServiceProvider::class,
@@ -81,7 +88,6 @@ class AppServiceProvider extends ServiceProvider {
         \Illuminate\Queue\QueueServiceProvider::class,
         \Illuminate\Redis\RedisServiceProvider::class,
         \Illuminate\Auth\Passwords\PasswordResetServiceProvider::class,
-        \Illuminate\Session\SessionServiceProvider::class,
         \Illuminate\Translation\TranslationServiceProvider::class,
         \Illuminate\Validation\ValidationServiceProvider::class,
         \Illuminate\View\ViewServiceProvider::class
@@ -114,7 +120,7 @@ class AppServiceProvider extends ServiceProvider {
         'DB' => \Illuminate\Support\Facades\DB::class,
         'Eloquent' => \Illuminate\Database\Eloquent\Model::class,
         'Event' => \Illuminate\Support\Facades\Event::class,
-        'File' => \Illuminate\Support\Facades\File::class,
+      //  'File' => \Illuminate\Support\Facades\File::class,
         'Gate' => \Illuminate\Support\Facades\Gate::class,
         'Hash' => \Illuminate\Support\Facades\Hash::class,
         'Http' => \Illuminate\Support\Facades\Http::class,
@@ -130,7 +136,7 @@ class AppServiceProvider extends ServiceProvider {
         'Response' => \Illuminate\Support\Facades\Response::class,
         'Route' => \Illuminate\Support\Facades\Route::class,
         'Schema' => \Illuminate\Support\Facades\Schema::class,
-        'Session' => \Illuminate\Support\Facades\Session::class,
+      //  'Session' => \Illuminate\Support\Facades\Session::class,
         'Storage' => \Illuminate\Support\Facades\Storage::class,
         'Str' => \Illuminate\Support\Str::class,
         'URL' => \Illuminate\Support\Facades\URL::class,
@@ -170,15 +176,21 @@ class AppServiceProvider extends ServiceProvider {
 
         $this->app->register(TaggableFileCacheServiceProvider::class);
 
+        //$this->app->register(AlternativeCacheStoresServiceProvider::class);
+
         $this->app->register('Conner\Tagging\Providers\TaggingServiceProvider');
         $this->app->register(EventManagerServiceProvider::class);
         $this->app->register(HelpersServiceProvider::class);
+        $this->app->register(  PageServiceProvider::class);
         $this->app->register(ContentServiceProvider::class);
         $this->app->register(ContentManagerServiceProvider::class);
         $this->app->register(CategoryManagerServiceProvider::class);
         $this->app->register(TagsManagerServiceProvider::class);
         $this->app->register(MediaManagerServiceProvider::class);
         $this->app->register(MenuManagerServiceProvider::class);
+        $this->app->register(ProductServiceProvider::class);
+        $this->app->register(ContentDataServiceProvider::class);
+        $this->app->register(CustomFieldServiceProvider::class);
 
         // Shop
         $this->app->register(ShopManagerServiceProvider::class);
@@ -210,7 +222,6 @@ class AppServiceProvider extends ServiceProvider {
 
     protected function registerLaravelProviders()
     {
-
         $this->app->singleton('mw_migrator', function ($app) {
             $repository = $app['migration.repository'];
             return new MicroweberMigrator($repository, $app['db'], $app['files'], $app['events'], $app);
@@ -332,6 +343,16 @@ class AppServiceProvider extends ServiceProvider {
 
     public function boot()
     {
+        if (DB::Connection() instanceof \Illuminate\Database\SQLiteConnection) {
+            DB::connection('sqlite')->getPdo()->sqliteCreateFunction('regexp',
+                function ($pattern, $data, $delimiter = '~', $modifiers = 'isuS') {
+                    if (isset($pattern, $data) === true) {
+                        return preg_match(sprintf('%1$s%2$s%1$s%3$s', $delimiter, $pattern, $modifiers), $data) > 0;
+                    }
+                    return;
+                }
+            );
+        }
 
         $this->app->singleton('lang_helper', function ($app) {
             return new Lang($app);

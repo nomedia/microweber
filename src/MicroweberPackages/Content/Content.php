@@ -3,30 +3,41 @@ namespace MicroweberPackages\Content;
 
 use Conner\Tagging\Taggable;
 use Illuminate\Database\Eloquent\Model;
+use MicroweberPackages\ContentData\Traits\ContentDataTrait;
+use MicroweberPackages\CustomField\Traits\CustomFieldsTrait;
+use MicroweberPackages\Tag\Tag;
+
+
 
 class Content extends Model
 {
     use Taggable;
+    use ContentDataTrait;
+    use CustomFieldsTrait;
 
-    public $table = 'content';
+    protected $table = 'content';
 
-    public function notifications()
-    {
-        return $this->morphMany('Notifications', 'rel');
-    }
+    protected $content_type = 'content';
 
-    public function comments()
-    {
-        return $this->morphMany('Comments', 'rel');
-    }
 
-    public function data_fields()
-    {
-        return $this->morphMany('ContentData', 'rel');
-    }
 
     public function tags()
     {
         return $this->belongsToMany(Tag::class);
     }
+
+
+
+
+//    public function save(array $options = [])
+//    {
+//
+//        //@todo move to trait
+//        foreach($this->contentData as $key => $value) {
+//            $this->data()->where('field_name',$key)->updateOrCreate([ 'field_name' => $key],
+//                ['field_name' => $key, 'field_value' => $value]);
+//        }
+//
+//        parent::save($options);
+//    }
 }
