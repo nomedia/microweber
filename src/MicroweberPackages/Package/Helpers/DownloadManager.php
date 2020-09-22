@@ -25,8 +25,6 @@ use  Composer\Downloader\DownloaderInterface;
  */
 
 
-
-
 class DownloadManager extends DownloadManagerBase
 {
     private $io;
@@ -114,7 +112,7 @@ class DownloadManager extends DownloadManagerBase
      */
     public function setDownloader($type, DownloaderInterface $downloader)
     {
-        $type = strtolower($type);
+
         $this->downloaders[$type] = $downloader;
 
         return $this;
@@ -129,7 +127,6 @@ class DownloadManager extends DownloadManagerBase
      */
     public function getDownloader($type)
     {
-        $type = strtolower($type);
         if (!isset($this->downloaders[$type])) {
             throw new \InvalidArgumentException(sprintf('Unknown downloader type: %s. Available types: %s.', $type, implode(', ', array_keys($this->downloaders))));
         }

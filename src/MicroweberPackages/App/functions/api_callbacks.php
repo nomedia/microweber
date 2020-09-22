@@ -1,7 +1,5 @@
 <?php
 
-use Microweber\Utils\Adapters\Media\Unsplash;
-
 api_expose('api_index', function ($data = false) {
     $fns = explode(' ', api_expose(true));
     $fns = array_filter($fns);
@@ -113,7 +111,7 @@ api_expose('template/print_custom_css', function ($data) {
 api_expose_admin('media_library/search', function ($data) {
 
     $search = array();
-    $unsplash = new Unsplash();
+    $unsplash = new \MicroweberPackages\Utils\Media\Adapters\Unsplash();
 
     $page = 1;
 
@@ -134,7 +132,7 @@ api_expose_admin('media_library/search', function ($data) {
 
 api_expose_admin('media_library/download', function ($data) {
 
-    $unsplash = new Unsplash();
+    $unsplash = new \MicroweberPackages\Utils\Media\Adapters\Unsplash();
     if (isset($data['photo_id'])) {
         $image = $unsplash->download($data['photo_id']);
     }
@@ -385,22 +383,20 @@ api_expose('save_media');
 
 api_expose('pixum_img');
 api_expose('thumbnail_img');
+
+
 \Illuminate\Support\Facades\Route::get('/api/image-tn/{cache_id}', function ($cache_id) {
     $cache_id_data = cache_get($cache_id, 'media');
     if ($cache_id_data) {
-        $tn = mw()->media_manager->thumbnail_img($cache_id_data);;
+        $tn = mw()->media_manager->thumbnail_img($cache_id_data);
         return $tn;
     }
-});
-
+})->middleware(\MicroweberPackages\App\Http\Middleware\SessionlessMiddleware::class);
 
 api_expose('create_media_dir');
-
 api_expose('media/delete_media_file');
 
-
 // queue
-
 api_expose('queue_dispatch', function () {
     return;
     mw()->event_manager->trigger('mw.queue.dispatch');

@@ -33,7 +33,7 @@
         }
 
 
-        mw_admin_edit_category_item_module_opened = mw.modal({
+        mw.dialog({
             content: '<div id="mw_admin_edit_category_item_module"></div>',
             title: modalTitle,
             id: 'mw_admin_edit_category_item_popup_modal'
@@ -103,19 +103,10 @@
     </div>
 
     <div>
-        <div class="mw-searchbox">
-            <div class="mw-sb-item">
-                <div class="mw-sb-item-input"><input type="text" class="mw-ui-field" placeholder="Search" oninput="categorySearch(this)"/></div>
-            </div>
-        </div>
 
-        <script>
-            $(document).ready(function () {
-                mw.admin.scrollBox(".mw-ui-category-selector");
-            })
-        </script>
 
-        <div class="mw-ui-category-selector mw-ui-manage-list m-0" id="mw-ui-category-selector-manage" style="visibility: visible;display: block">
+
+        <div class="mw-ui-category-selector mw-ui-manage-list m-0" id="mw-ui-category-selector-manage">
             <?php
             $field_name = "categories";
             $selected = 0;

@@ -18,7 +18,7 @@ use MicroweberPackages\Content\Content;
 use MicroweberPackages\Database\Utils as DbUtils;
 use MicroweberPackages\Database\Traits\QueryFilter;
 use MicroweberPackages\Database\Traits\ExtendedSave;
-use MicroweberPackages\Media\Media;
+use MicroweberPackages\Media\Models\Media;
 use SuperClosure\SerializableClosure;
 
 
@@ -215,8 +215,6 @@ class DatabaseManager extends DbUtils
         $query = $this->map_values_to_query($query, $params);
 
         $ttl = $this->table_cache_ttl;
-
-
         if (!$query) {
             return;
         }
@@ -284,16 +282,12 @@ class DatabaseManager extends DbUtils
             return $query;
         }
 
-
-
-
         if ($use_cache == false) {
              $data = $query->get();
         } else {
             $data = Cache::tags($table)->remember($cache_key, $ttl, function () use ($query) {
                 return $query->get();
             });
-
         }
 
         if ($data == false or empty($data)) {
@@ -452,7 +446,7 @@ class DatabaseManager extends DbUtils
             var_dump($data);
         }*/
 
-        $data['user_ip'] = MW_USER_IP;
+        $data['user_ip'] = user_ip();
         if (isset($data['id']) == false or $data['id'] == 0) {
             $data['id'] = 0;
             $l = $this->last_id($table);

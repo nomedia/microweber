@@ -1,5 +1,5 @@
 <?php
-only_admin_access();
+must_have_access();
 /**
  * Simple file browser
  *
@@ -22,15 +22,12 @@ $path_restirct = media_uploads_path(); // the path the script should access
 
 
 if (isset($params['path']) and trim($params['path']) != '' and trim($params['path']) != 'false') {
-
     $path = $params['path']; // the path the script should access
-
 }
 
 $path = str_replace('./', '', $path);
 $path = str_replace('..', '', $path);
 $path = urldecode($path);
-
 $path = str_replace($path_restirct, '', $path);
 
 //$data = rglob($path);
@@ -60,7 +57,7 @@ if (isset($params['extensions']) and $params['extensions']) {
     $params_get_files['extensions'] = $params['extensions'];
 }
 
-$data = mw(\MicroweberPackages\Utils\System\Files::class)->get($params_get_files);
+$data = mw('MicroweberPackages\Utils\System\Files')->get($params_get_files);
 
 $path_nav = explode(DS, $path);
 
@@ -219,9 +216,7 @@ if (isset($params['sort_by'])) {
                            href="<?php print mw()->url_manager->link_to_file($item) ?>"
                            onclick="mw.url.windowHashParam('select-file', '<?php print mw()->url_manager->link_to_file($item) ?>'); return false;">
                             <?php $ext = strtolower(get_file_extension($item)); ?>
-
                             <?php if ($ext == 'jpg' or $ext == 'png' or $ext == 'gif' or $ext == 'jpeg' or $ext == 'bmp'): ?>
-
                                 <span data-src="<?php print thumbnail(mw()->url_manager->link_to_file($item), $tn_size, $tn_size, true); ?>"
                                       class="<?php print basename($item) ?> as-image image-item-not-ready"></span>
                             <?php else: ?>
@@ -295,7 +290,7 @@ if (isset($params['sort_by'])) {
                         rendImages();
                     }, 333);
 
-                    browserList.height($(top).height() - browserList.offset().top - 220)
+                    // browserList.height($(top).height() - browserList.offset().top - 220)
                 });
 
             </script>

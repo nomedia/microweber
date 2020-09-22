@@ -82,7 +82,7 @@ class BackupV2
 
 	public function upload($query)
 	{
-		only_admin_access();
+		must_have_access();
 
 		if (! isset($query['src'])) {
 			return array(
@@ -109,9 +109,9 @@ class BackupV2
 				);
 			}
 		} else {
-			return array(
-				'error' => 'Uploaded file is not found!'
-			);
+//			return array(
+//				'error' => 'Uploaded file is not found!'
+//			);
 		}
 	}
 
@@ -168,7 +168,7 @@ class BackupV2
 
 	public function import($query) {
 
-		only_admin_access();
+		must_have_access();
 
 		$fileId = null;
 		if (isset($query['id'])) {
@@ -178,6 +178,8 @@ class BackupV2
 		} elseif (isset($_GET['file'])) {
 			$fileId = $query['file'];
 		}
+
+        $this->manager->setImportStep(intval($_GET['step']));
 
 		if (isset($query['import_by_type']) && $query['import_by_type'] == 'overwrite_by_id') {
 			$this->manager->setImportOvewriteById(true);

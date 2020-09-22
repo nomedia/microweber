@@ -77,7 +77,7 @@ trait QueryFilter
 
             }
             if($a_merge){
-            $require_any_cols = array_merge($require_any_cols, $a_merge);
+                $require_any_cols = array_merge($require_any_cols, $a_merge);
             }
             if ($require_any_cols) {
                 $require_any_cols = array_flip($require_any_cols);
@@ -101,7 +101,20 @@ trait QueryFilter
             }
         }
 
-        foreach ($params as $filter => $value) {
+        $exclude_ids = [];
+        if(isset($params['exclude_ids']) and is_string($params['exclude_ids'])){
+            $exclude_ids_merge = explode(',',$params['exclude_ids']);
+            if($exclude_ids_merge){
+                $exclude_ids = array_merge($exclude_ids,$exclude_ids_merge);
+            }
+        } else if(isset($params['exclude_ids']) and is_array($params['exclude_ids'])) {
+                $exclude_ids = array_merge($exclude_ids,$params['exclude_ids']);
+         }
+
+
+
+
+            foreach ($params as $filter => $value) {
 
             $compare_sign = false;
             $compare_value = false;
@@ -355,7 +368,7 @@ trait QueryFilter
                     break;
 
 
-                    case 'tag':
+                case 'tag':
                 case 'tags':
                 case 'all_tags':
                 case 'all_tag':
@@ -417,18 +430,26 @@ trait QueryFilter
                             if (!$strict_categories) {
                                 if($ids){
 
-                                  //   $get_subcats = $this->table('categories')->where('data_type','category')->whereIn('parent_id',$ids)->get();
-                                 }
+                                    //   $get_subcats = $this->table('categories')->where('data_type','category')->whereIn('parent_id',$ids)->get();
+                                }
                             }
 
                             if (!isset($search_joined_tables_check['categories_items'])) {
                                 $search_joined_tables_check['categories_items'] = true;
 
-                                $query = $query->join('categories_items', function ($join) use ($table, $ids) {
+                                $query = $query->join('categories_items', function ($join) use ($table, $ids, $exclude_ids) {
 
                                     $join->on('categories_items.rel_id', '=', $table . '.id')
                                         ->where('categories_items.rel_type', '=', $table);
+
+
+                                    if($exclude_ids){
+                                        $join->whereNotIn('categories_items.rel_id', $exclude_ids);
+
+                                    }
+
                                     $join->whereIn('categories_items.parent_id', $ids)->distinct();
+
 
 
                                 });
@@ -456,7 +477,7 @@ trait QueryFilter
 //                               $query->where('categories_items_joined_table.parent_id', $cat_id);
 //                            }
 
-                          //    $query = $query->distinct();
+                            //    $query = $query->distinct();
 
 
 //                        $query = $query->join('categories_items as categories_items_joined_table', 'categories_items_joined_table.rel_id', '=', $table . '.id')
@@ -524,8 +545,8 @@ trait QueryFilter
                     $query->join($value, $table . '.rel_id', '=', $value . '.id')->where($table . '.rel_type', $value);
                     break;
                 case 'current_page':
-                     $criteria = 0;
-                  //  $criteria = intval($value);
+                    $criteria = 0;
+                    //  $criteria = intval($value);
                     if ($value > 1) {
                         if ($is_limit != false) {
                             $criteria = intval($value - 1) * intval($is_limit);
@@ -575,6 +596,7 @@ trait QueryFilter
                         $query = $query->whereNotIn($table . '.id', $ids);
                     }
 
+
                     break;
                 case 'id':
                     unset($params[$filter]);
@@ -594,7 +616,7 @@ trait QueryFilter
                     break;
 
                 case 'no_cache':
-                   // $this->useCache = false;
+                    // $this->useCache = false;
                     break;
 
 //                case 'is_active':
@@ -720,6 +742,9 @@ trait QueryFilter
                     }
                     break;
             }
+
+
+
         }
 
         foreach (self::$custom_filters as $name => $callback) {

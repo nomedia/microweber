@@ -272,7 +272,7 @@ class UpdateManager
 
         $to_be_unzipped = array();
         if (defined('MW_API_CALL')) {
-            only_admin_access();
+            must_have_access();
         }
 
         $updates = $this->check();
@@ -657,7 +657,7 @@ class UpdateManager
 
         return;
         if (defined('MW_API_CALL')) {
-            only_admin_access();
+            must_have_access();
         }
 
 
@@ -1186,12 +1186,22 @@ class UpdateManager
         return $log_file_url;
     }
 
+    public function clear_log()
+    {
+        $log_file = userfiles_path() . $this->log_filename;
+        @file_put_contents($log_file, '');
+    }
+
     public function log_msg($msg)
     {
         if ($msg === true) {
             return $this->log_messages;
         } else {
             $this->log_messages[] = $msg;
+        }
+
+        if (is_array($msg)) {
+            return;
         }
 
         $log_file = userfiles_path() . $this->log_filename;
@@ -1248,13 +1258,23 @@ class UpdateManager
         if ($results == 'noresults') {
             return array();
         }
+
         return $results;
     }
 
 
     public function composer_install_package_by_name($params)
     {
-        return $this->composer_update->installPackageByName($params);
+        try {
+            return $this->composer_update->installPackageByName($params);
+        }catch (\Exception $e) {
+            return array(
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTrace()
+            );
+        }
     }
 
     public function composer_merge($composer_patch_path)

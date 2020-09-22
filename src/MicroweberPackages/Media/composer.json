@@ -12,15 +12,20 @@
       "email": "bobi@microweber.com"
     }
   ],
-
   "autoload": {
     "psr-4": {
       "MicroweberPackages\\Media\\": ""
+
     },
     "files": [
       "helpers/media.php",
       "helpers/media_paths.php"
     ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "MicroweberPackages\\Media\\tests\\": "tests"
+    }
   },
   "config": {
     "sort-packages": true

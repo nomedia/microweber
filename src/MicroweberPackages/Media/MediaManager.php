@@ -3,6 +3,7 @@ namespace MicroweberPackages\Media;
 
 use \Intervention\Image\ImageManagerStatic as Image;
 use MicroweberPackages\Utils\Media\Thumbnailer;
+use MicroweberPackages\Utils\System\Files;
 
 
 class MediaManager
@@ -28,7 +29,6 @@ class MediaManager
 
     public function get_picture($content_id, $for = 'content', $full = false)
     {
-
 
         if ($for == 'post' or $for == 'posts' or $for == 'page' or $for == 'pages') {
             $for = 'content';
@@ -176,7 +176,7 @@ class MediaManager
         if ($this->app->user_manager->is_admin() == false) {
             mw_error('not logged in as admin');
         }
-        $files_utils = new \MicroweberPackages\Utils\Files();
+        $files_utils = new Files();
 
 
         ini_set('upload_max_filesize', '2500M');
@@ -900,12 +900,12 @@ class MediaManager
         $cache_id_without_ext = 'tn-' . md5(serialize($cache_id_data));
         $cache_id = $cache_id_without_ext . '.' . $ext;
         $cache_path = $cd . $cache_id;
+        $cache_path = normalize_path($cache_path,false);
 
         if ($is_remote) {
             return $src;
-        } elseif (file_exists($cache_path)) {
+        } elseif (is_file($cache_path)) {
             $cache_path = $this->app->url_manager->link_to_file($cache_path);
-
             return $cache_path;
         } else {
             if (stristr($base_src, 'pixum_img')) {
@@ -922,11 +922,10 @@ class MediaManager
             }
 
             $cache_id_data['cache_path'] = $cache_path;
-
-            cache_save($cache_id_data, $cache_id_without_ext, 'media');
-
+            if (!cache_get($cache_id_without_ext, 'media')) {
+                cache_save($cache_id_data, $cache_id_without_ext, 'media', 99999);
+            }
             $tn_img_url = $this->app->url_manager->site('api/image-tn/') . $cache_id_without_ext;
-
             return $tn_img_url;
         }
 
@@ -1071,71 +1070,14 @@ class MediaManager
                         if ($crop) {
                             $thumbOptions['crop'] = $crop;
                         }
+
+                        $cache_path_dir = dirname($cache_path);
+                        if(!is_dir($cache_path_dir)){
+                            mkdir_recursive($cache_path_dir);
+                        }
                         $tn->createThumb($thumbOptions, $cache_path);
 
                         unset($tn);
-
-
-//                        if (function_exists('finfo_file')) {
-//                            //use Image library
-//                            //  $image = Image::make($src)->resize($width, $height)->save($cache_path);
-//
-//
-//                            if (intval($height) == 0) {
-//                                //    $height = null;
-//                            }
-//                            if ($width == $height) {
-//                                // $height = null;
-//                            }
-//
-//
-//                            $magicianObj_mode = 3;
-//                            $magicianObj = new \MicroweberPackages\Utils\lib\PHPImageMagician\imageLib($src);
-//                            if ($crop) {
-//                                $magicianObj_mode = 4;
-//                            }
-//                            $magicianObj->resizeImage($width, $height, $magicianObj_mode);
-//
-//                            $magicianObj->saveImage($cache_path, 100);
-//
-//                            // OLD INTERVENTION IMAGE LIB WILL BE REMOVED AS ITS NOT WORKING ON BIG IMAGES also deppends on finfo_file
-//
-////                            if (intval($height) == 0) {
-////                                $height = null;
-////                            }
-////                            if ($width == $height) {
-////                                $height = null;
-////                            }
-////
-////
-////                            if ($crop) {
-////                                $image = Image::make($src)->fit($width, $height);
-////
-////                            } else {
-////                                $image = Image::make($src)->resize($width, $height, function ($constraint) {
-////                                    $constraint->aspectRatio();
-////                                });
-////                            }
-////
-////                            $image = $image->save($cache_path);
-//
-//                            // END OF OLD INTERVENTION IMAGE LIB
-//
-//
-//                            //   unset($image);
-//                        } else {
-//                            // use fallback
-//
-////                            if (!$height) {
-////                                $height = $width;
-////                            }
-////                            $tn = new \MicroweberPackages\Utils\Thumbnailer($src);
-////                            $thumbOptions = array('maxLength' => $height, 'width' => $width);
-////                            $tn->createThumb($thumbOptions, $cache_path);
-////
-////                            unset($tn);
-//                        }
-
 
                     } else {
                         return $this->pixum_img();
@@ -1165,7 +1107,7 @@ class MediaManager
 
     public function create_media_dir($params)
     {
-        only_admin_access();
+        must_have_access();
         $resp = array();
         // $target_path = media_base_path() . 'uploaded' . DS;
         $target_path = media_uploads_path();
@@ -1200,7 +1142,7 @@ class MediaManager
 
     public function delete_media_file($params)
     {
-        only_admin_access();
+        must_have_access();
 
         // $target_path = media_base_path() . 'uploaded' . DS;
         $target_path = media_uploads_path();
@@ -1224,7 +1166,7 @@ class MediaManager
                     //  if (stristr($target_path, media_base_path())) {
                     if (stristr($target_path, media_uploads_path())) {
                         if (is_dir($target_path)) {
-                            mw('Microweber\Utils\Files')->rmdir($target_path, false);
+                            mw('MicroweberPackages\Utils\System\Files')->rmdir($target_path, false);
                             $resp = array('success' => 'Directory ' . $target_path . ' is deleted');
                         } elseif (is_file($target_path)) {
                             unlink($target_path);

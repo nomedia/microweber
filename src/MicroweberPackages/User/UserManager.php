@@ -12,13 +12,6 @@ use MicroweberPackages\App\LoginAttempt;
 use Microweber\Providers\Users\TosManager;
 use MicroweberPackages\Utils\Mail\MailSender;
 
-if (!defined('MW_USER_IP')) {
-    if (isset($_SERVER['REMOTE_ADDR'])) {
-        define('MW_USER_IP', $_SERVER['REMOTE_ADDR']);
-    } else {
-        define('MW_USER_IP', '127.0.0.1');
-    }
-}
 
 class UserManager
 {
@@ -325,7 +318,7 @@ class UserManager
         }
     }
 
-    public function has_access($function_name)
+    public function has_access($function_name = '')
     {
         // will be updated with roles and perms
         $is_a = $this->is_admin();
@@ -1092,7 +1085,10 @@ class UserManager
         $data_to_save = $this->app->format->clean_xss($data_to_save);
 
 
-        if ($user->validateAndFill($data_to_save)) {
+        $checkValidator = $user->validateAndFill($data_to_save);
+        $getValidatorMessages = $user->getValidatorMessages();
+
+        if ($checkValidator) {
 
             if (isset($data_to_save['id'])) {
 
@@ -1134,7 +1130,17 @@ class UserManager
                 }
             }
 
-            $save = $user->save();
+            if ($params['roles'][0] == 'Super Admin') {
+                $user->is_admin = 1;
+            } else {
+                $user->assignRole($params['roles']);
+            }
+
+            try {
+                $save = $user->save();
+            } catch (\Exception $e) {
+                return array('error' => $e->getMessage());
+            }
 
             if (isset($params['attributes']) or isset($params['data_fields'])) {
                 $params['extended_save'] = true;
@@ -1160,7 +1166,13 @@ class UserManager
             $params['id'] = $id_to_return;
             $this->app->event_manager->trigger('mw.user.save', $params);
         } else {
-            return array('error' => 'Error saving the user!');
+            $errorMessages = '';
+            foreach ($getValidatorMessages as $validatorInputs) {
+                foreach($validatorInputs as $validatorInput) {
+                    $errorMessages .= $validatorInput . '<br />';
+                }
+            }
+            return array('error' => $errorMessages);
         }
         $this->app->cache_manager->delete('users' . DIRECTORY_SEPARATOR . 'global');
         $this->app->cache_manager->delete('users' . DIRECTORY_SEPARATOR . '0');

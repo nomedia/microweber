@@ -1,12 +1,13 @@
 <?php
 
+
 namespace Microweber\Comments\Models;
 
+use MicroweberPackages\Database\Crud;
+use Microweber\Utils\Http;
+use MicroweberPackages\Utils\Mail\MailSender;
 use MicroweberPackages\View\View;
 use GrahamCampbell\Markdown\Facades\Markdown;
-use MicroweberPackages\Database\Crud;
-use MicroweberPackages\Utils\Http\Http;
-use MicroweberPackages\Utils\Mail\MailSender;
 
 
 class Comments extends Crud
@@ -322,7 +323,7 @@ class Comments extends Crud
     public function mark_as_spam($data)
     {
 
-        only_admin_access();
+        must_have_access();
         if (isset($data['comment_id'])) {
             $s = array();
             $s['id'] = $data['comment_id'];
@@ -344,7 +345,7 @@ class Comments extends Crud
     public function mark_as_old($data)
     {
 
-        only_admin_access();
+        must_have_access();
 
         if (isset($data['content_id'])) {
             $table = MODULE_DB_COMMENTS;

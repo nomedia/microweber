@@ -11,7 +11,7 @@ if (!defined('T')) {
 }
 
 if (!defined('MW_VERSION')) {
-    define('MW_VERSION', '1.1.20');
+    define('MW_VERSION', '1.2.0');
 }
 
 
@@ -56,13 +56,7 @@ if (!defined('MW_TEMPLATES_FOLDER_NAME')) {
 if (!defined('MW_SYSTEM_MODULE_FOLDER')) {
     define('MW_SYSTEM_MODULE_FOLDER', 'microweber'); //relative to modules dir
 }
-if (!defined('MW_USER_IP')) {
-    if (isset($_SERVER['REMOTE_ADDR'])) {
-        define('MW_USER_IP', $_SERVER['REMOTE_ADDR']);
-    } else {
-        define('MW_USER_IP', '127.0.0.1');
-    }
-}
+
 
 $functions_dir = __DIR__.DS;
 
@@ -74,4 +68,3 @@ include_once $functions_dir.'filesystem.php';
 include_once $functions_dir.'lang.php';
 include_once $functions_dir.'common.php';
 include_once $functions_dir.'other.php';
-

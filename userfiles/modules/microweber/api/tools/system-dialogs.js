@@ -5,11 +5,11 @@ mw.tools.alert = function (text) {
         + '<td align="center" valign="middle"><div class="mw_alert_holder">' + text + '</div></td>'
         + '</tr>'
         + '<tr>'
-        + '<td align="center" height="25"><span class="mw-ui-btn" onclick="mw.tools.modal.remove(\'mw_alert\');"><b>' + mw.msg.ok + '</b></span></td>'
+        + '<td align="center" height="25"><span class="mw-ui-btn mw-ui-btn-medium" onclick="mw.dialog.remove(this);"><b>' + mw.msg.ok + '</b></span></td>'
         + '</tr>'
         + '</table>';
     if (mw.$("#mw_alert").length === 0) {
-        return mw.modal({
+        return mw.dialog({
             html: html,
             width: 400,
             height: 200,
@@ -33,25 +33,26 @@ mw.tools.confirm = function (question, callback) {
             + '</tr>'
             + '</table>';
 
-        var ok = $('<span tabindex="99999" class="mw-ui-btn mw-ui-btn-medium mw-ui-btn-info">'+mw.msg.ok+'</span>');
-        var cancel = $('<span class="mw-ui-btn mw-ui-btn-medium ">' + mw.msg.cancel + '</span>');
+        var ok = mw.top().$('<span tabindex="99999" class="mw-ui-btn mw-ui-btn-medium mw-ui-btn-info">' + mw.msg.ok + '</span>');
+        var cancel = mw.top().$('<span class="mw-ui-btn mw-ui-btn-medium ">' + mw.msg.cancel + '</span>');
+        var modal;
 
         if (mw.$("#mw_confirm_modal").length === 0) {
-            var modal = mw.top().dialog({
+            modal = mw.top().dialog({
                 content: html,
                 width: 400,
                 height: 'auto',
                 autoHeight: true,
                 overlay: false,
                 name: "mw_confirm_modal",
-                footer: [cancel, ok]
+                footer: [cancel, ok],
+                title: mw.lang('Confirm')
             });
         }
         else {
             mw.$("#mw_confirm_modal .mw_alert_holder").html(question);
-            var modal = mw.$("#mw_confirm_modal")[0].modal;
+            modal = mw.$("#mw_confirm_modal")[0].modal;
         }
-
 
         ok.on('keydown', function (e) {
             if (e.keyCode === 13 || e.keyCode === 32) {

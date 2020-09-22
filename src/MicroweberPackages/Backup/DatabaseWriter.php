@@ -41,7 +41,7 @@ class DatabaseWriter
 	 * The current batch step.
 	 * @var integer
 	 */
-	public $currentStep = 0;
+	public $step = 0;
 	
 	/**
 	 * The total steps for batch.
@@ -67,32 +67,13 @@ class DatabaseWriter
 	 */
 	public $content;
 	
-	/**
-	 * The name of cache group for backup file.
-	 * @var string
-	 */
-	private $_cacheGroupName = 'BackupImporting';
-	
 	public function setContent($content)
 	{
 		$this->content = $content;
 	}
 	
-	public function getCurrentStep() {
-		
-		$this->currentStep = (int) cache_get('CurrentStep', $this->_cacheGroupName);
-		
-		if (!$this->currentStep) {
-			$this->currentStep = 0;
-		}
-		
-		/*
-		if ($this->currentStep > $this->totalSteps) {
-			//$this->_finishUp('getCurrentStep()');
-			//$this->currentStep = 0;
-		}*/
-		
-		return $this->currentStep;
+	public function setStep($step) {
+		$this->step = $step;
 	}
 	
 	public function setOverwriteById($overwrite) {
@@ -131,8 +112,9 @@ class DatabaseWriter
 			$dbSelectParams['id'] = $item['id'];
 			
 			$itemIdDatabase = DatabaseSave::save($item['save_to_table'], $item);
-			
-			return array('item'=>$item, 'itemIdDatabase'=>$itemIdDatabase);
+            BackupImportLogger::setLogInfo('Saving in table "' . $item['save_to_table'] . '"  Item id: ' . $itemIdDatabase );
+
+            return array('item'=>$item, 'itemIdDatabase'=>$itemIdDatabase);
 		}
 		
 		if ($item['save_to_table'] == 'options') {
@@ -293,6 +275,8 @@ class DatabaseWriter
 		return; */
 
         if (isset($this->content->__table_structures)) {
+            BackupImportLogger::setLogInfo('Building database tables');
+
             app()->database_manager->build_tables($this->content->__table_structures);
         }
 
@@ -301,6 +285,7 @@ class DatabaseWriter
             if (!\Schema::hasTable($table)) {
                 continue;
             }
+            BackupImportLogger::setLogInfo('Importing in table: ' . $table);
 
 			if (!empty($items)) {
 				foreach($items as $item) {
@@ -311,19 +296,18 @@ class DatabaseWriter
 		}
 		
 		$this->_finishUp('runWriterBottom');
-		cache_save($this->totalSteps, 'CurrentStep', $this->_cacheGroupName, 60 * 10);
 		
 	}
 	
 	public function runWriterWithBatch()
 	{
-		if ($this->getCurrentStep() == 0) {
+		if ($this->step == 0) {
 			BackupImportLogger::clearLog();
 			$this->_deleteOldContent();
 		}
 
-		BackupImportLogger::setLogInfo('Importing database batch: ' . ($this->getCurrentStep() + 1) . '/' . $this->totalSteps);
-		
+		BackupImportLogger::setLogInfo('Importing database batch: ' . ($this->step) . '/' . $this->totalSteps);
+
 		if (empty($this->content)) {
 			$this->_finishUp('runWriterWithBatchNothingToImport');
 			return array("success"=>"Nothing to import.");
@@ -357,7 +341,7 @@ class DatabaseWriter
 			}
 			BackupImportLogger::setLogInfo('Save content to table: ' . $table);
 		}
-		
+
 		if (!empty($itemsForSave)) {
 			
 			$totalItemsForSave = sizeof($itemsForSave);
@@ -370,26 +354,26 @@ class DatabaseWriter
 				$itemsBatch[0] = $itemsForSave;
 			}
 			
-			if (!isset($itemsBatch[$this->getCurrentStep()])) {
-				
+			if (!isset($itemsBatch[$this->step])) {
+
 				BackupImportLogger::setLogInfo('No items in batch for current step.');
-				
-				cache_save($this->totalSteps, 'CurrentStep', $this->_cacheGroupName, 60 * 10);
 				
 				return array("success"=>"Done! All steps are finished.");
 			}
 			
 			$success = array();
-			foreach($itemsBatch[$this->getCurrentStep()] as $item) {
+			foreach($itemsBatch[$this->step] as $item) {
 				//echo 'Save item' . PHP_EOL;
 				//	BackupImportLogger::setLogInfo('Save content to table: ' . $item['save_to_table']);
-				$success[] = $this->_saveItem($item);
+                try {
+                    $success[] = $this->_saveItem($item);
+                } catch (\Exception $e) {
+                    // echo $e->getMessage();
+                    BackupImportLogger::setLogInfo('Save content to table: ' . $item['save_to_table']);
+                }
 			}
-			
+
 			//echo 'Save cache ... ' .$this->currentStep. PHP_EOL;
-			
-			cache_save($this->getCurrentStep() + 1, 'CurrentStep', $this->_cacheGroupName, 60 * 10);
-			
 		}
 		
 	}
@@ -397,20 +381,19 @@ class DatabaseWriter
 	public function getImportLog() {
 		
 		$log = array();
-		$log['current_step'] = $this->getCurrentStep();
+		$log['current_step'] = $this->step;
+		$log['next_step'] = $this->step + 1;
 		$log['total_steps'] = $this->totalSteps;
-		$log['precentage'] = ($this->getCurrentStep() * 100) / $this->totalSteps;
+		$log['precentage'] = ($this->step * 100) / $this->totalSteps;
 		
-		if ($this->getCurrentStep() >= $this->totalSteps) {
-			
+		if ($this->step >= $this->totalSteps) {
 			$log['done'] = true;
 			
 			// Finish up
-			$this->_finishUp();
+			$this->_finishUp('getImportLog');
 			
 			// Clear log file
 			BackupImportLogger::clearLog();
-			
 		}
 		
 		return $log;
@@ -426,7 +409,11 @@ class DatabaseWriter
                 }
                 if (\Schema::hasTable($table)) {
                     BackupImportLogger::setLogInfo('Truncate table: ' . $table);
-                    \DB::table($table)->truncate();
+                    try {
+                        \DB::table($table)->truncate();
+                    } catch (\Exception $e) {
+                        BackupImportLogger::setLogInfo('Can\'t truncate table: ' . $table);
+                    }
                 }
             }
         }
@@ -437,18 +424,16 @@ class DatabaseWriter
 	 */
 	private function _finishUp($callFrom = '') {
 		
-		// BackupImportLogger::setLogInfo('Call from: ' . $callFrom);
-		
-		// cache_delete($this->_cacheGroupName);
+		 BackupImportLogger::setLogInfo('Call from: ' . $callFrom);
 		
 		if (function_exists('mw_post_update')) {
 			mw_post_update();
 		}
 		
 		BackupImportLogger::setLogInfo('Cleaning up system cache');
-		
+
 		mw()->cache_manager->clear();
-		
+
 		BackupImportLogger::setLogInfo('Done!');
 	}
 }

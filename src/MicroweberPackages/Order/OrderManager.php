@@ -49,6 +49,7 @@ class OrderManager
         }
         $table = $table = $this->table;
         $params['table'] = $table;
+        $params['no_cache'] = true;
 
         return $this->app->database_manager->get($params);
     }
@@ -65,6 +66,10 @@ class OrderManager
 
         if (is_array($item) and isset($item['custom_fields_data']) and $item['custom_fields_data'] != '') {
             $item = $this->app->format->render_item_custom_fields_data($item);
+        }
+
+        if (isset($item['payment_data']) and ($item['payment_data'])) {
+            $item['payment_data'] = json_decode($item['payment_data']);
         }
 
         return $item;
@@ -187,6 +192,10 @@ class OrderManager
             }
         }
 
+
+        if (isset($params['payment_data']) and !empty($params['payment_data'])) {
+            $params['payment_data'] = json_encode($params['payment_data']);
+        }
         $table = $this->table;
         $params['table'] = $table;
         $this->app->cache_manager->delete('cart_orders');

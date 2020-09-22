@@ -937,7 +937,7 @@
     myEditor = mw.editor({ element: '#some-div-or-textarea' });
 
     // 'change' event
-    $(myEditor).bind('change', function(){
+    $(myEditor).on('change', function(){
        console.log( this.value )
     });
 
@@ -1186,34 +1186,9 @@
     </tr>
     <tr>
         <td colspan="2">
-            <h2>Modal Window</h2>
-
-            <span class="mw-ui-btn" onclick="mw.modal({})">Default</span>
-
-            <span class="mw-ui-btn" onclick="mw.modal({template:'basic'})">Simple</span>
-
-            <span class="mw-ui-btn" onclick="mw.modalFrame({url:'http://google.com'});">Iframe</span>
-            <span class="mw-ui-btn" onclick="modalAPIEXAMPLE()">API EXAMPLE</span>
-
-            <div id="modalAPIEXAMPLE" style="display: none">
 
 
-                <div class="mw-ui-btn-nav">
-                    <span class="mw-ui-btn" onclick="MODALAPI.resize(Math.floor(Math.random()*(700-150+1)+150),Math.floor(Math.random()*(700-150+1)+150))">Resize</span>
-                    <span class="mw-ui-btn" onclick="MODALAPI.center()">Center</span>
-                    <span class="mw-ui-btn" onclick="MODALAPI.resize(Math.floor(Math.random()*(700-150+1)+150),Math.floor(Math.random()*(700-150+1)+150)).center()">Resize and Center</span>
 
-                </div>
-
-            </div>
-
-            <script>
-
-                modalAPIEXAMPLE = function () {
-                    MODALAPI = mw.modal({content: $('#modalAPIEXAMPLE').html()});
-                }
-
-            </script>
         </td>
     </tr>
 
@@ -1569,13 +1544,13 @@
                     pick2 = mw.colorPicker({
                         element: '#resr',
                         onchange: function (color) {
-                            $("#mw-admin-main-menu").css("background", color);
+                            console.log(color);
                         }
                     });
                     pick3 = mw.colorPicker({
                         element: '#resr2',
                         onchange: function (color) {
-                            $("#mw-admin-main-menu").css("background", color);
+                            console.log(color);
                         }
                     });
                 });
@@ -1601,48 +1576,7 @@
 
         </td>
     </tr>
-    <tr>
-        <td colspan="2">
 
-            <h2>Upload demo</h2>
-
-
-            <script>
-                mw.require("files.js");
-            </script>
-            <style>
-             #pl,#uppy{
-                 position: relative;
-                 width: 600px;
-                 height: 600px;
-                 background-color: #ccc;
-             }
-
-            </style>
-            <script>
-
-                var updefaults = {
-                    filetypes:"png,gif,jpg,jpeg,tiff,bmp,svg,zip,sql",
-                    url:mw.settings.upload_url,
-                    multiple:true
-                }
-
-                $(window).load(function () {
-                    var pl = mw.files.uploader(updefaults)
-                    var uppy = mw.files.uploader(updefaults, true)
-                    $('#pl').append(pl)
-                    $('#uppy').append(uppy)
-                });
-
-            </script>
-
-            <h6>pl</h6>
-            <div id="pl"></div>
-            <h6>uppy</h6>
-            <div id="uppy"></div>
-
-        </td>
-    </tr>
     </tbody>
 </table>
 

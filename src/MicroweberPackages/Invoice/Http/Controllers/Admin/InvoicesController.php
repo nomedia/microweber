@@ -21,6 +21,7 @@ use PDF;
 use Validator;
 use MicroweberPackages\Invoice\TaxType;
 use MicroweberPackages\Invoice\Tax;
+use MicroweberPackages\Page\Http\Requests\PageRequest;
 
 class InvoicesController extends AdminController
 {
@@ -136,7 +137,7 @@ class InvoicesController extends AdminController
      * @param  \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Requests\InvoicesRequest $request)
+    public function store(PageRequest $request)
     {
         $invoice_number = explode("-",$request->invoice_number);
         $number_attributes['invoice_number'] = $invoice_number[0].'-'.sprintf('%06d', intval($invoice_number[1]));
@@ -288,7 +289,7 @@ class InvoicesController extends AdminController
      * @param  int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Requests\InvoicesRequest $request, $id)
+    public function update(Requests\PageRequest $request, $id)
     {
         $invoice_number = explode("-",$request->invoice_number);
         $number_attributes['invoice_number'] = $invoice_number[0].'-'.sprintf('%06d', intval($invoice_number[1]));

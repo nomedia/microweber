@@ -1,36 +1,18 @@
 <?php
 namespace MicroweberPackages\Package;
 
-use Composer\Console\Application;
 use Composer\Command\UpdateCommand;
 use Composer\Command\InstallCommand;
-use Composer\Command\SearchCommand;
 use Composer\Config;
-use Composer\IO\NullIO;
 use MicroweberPackages\Package\PackageManagerUnzipOnChunksException;
 use Symfony\Component\Console\Input\ArrayInput;
 use MicroweberPackages\Package\ComposerFactory as Factory;
 use Composer\IO\ConsoleIO;
-use Composer\IO\BufferIO;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Output\ConsoleOutput;
-use Symfony\Component\Console\Output\StreamOutput;
-use Composer\Installer;
-use Composer\Package\CompletePackageInterface;
-use Composer\Package\Link;
-use Composer\Package\PackageInterface;
-use Composer\Repository\CompositeRepository;
-use Composer\Repository\PlatformRepository;
-use Composer\Repository\RepositoryInterface;
-use MicroweberPackages\Package\ComposerPackagesSearchCommandController;
-use Composer\Console\HtmlOutputFormatter;
-use MicroweberPackages\Package\Helpers\TemplateInstaller;
-use MicroweberPackages\Package\Helpers\ModuleInstaller;
-use MicroweberPackages\Package\Helpers\CoreUpdateInstaller;
 use MicroweberPackages\Package\Helpers\InstallerIO;
 use Composer\Semver\Comparator;
-use ZipArchive;
 
 class ComposerUpdate
 {
@@ -95,7 +77,7 @@ class ComposerUpdate
         $update = new UpdateCommand();
         $update->setComposer($composer);
         $out = $update->run($input, $output);
-        ob_end_clean();
+        
 
         return $out;
 
@@ -129,7 +111,7 @@ class ComposerUpdate
         $update = new InstallCommand();
         $update->setComposer($composer);
         $out = $update->run($input, $output);
-        ob_end_clean();
+        
 
         return $out;
     }
@@ -171,7 +153,6 @@ class ComposerUpdate
 
         $keyword = strip_tags($keyword);
         $keyword = trim($keyword);
-
 
         $temp_folder = $this->_prepareComposerWorkdir($keyword, $version);
         if (!$temp_folder) {
@@ -218,7 +199,7 @@ class ComposerUpdate
 
         $return = $packages->handle($keyword);
 
-        ob_end_clean();
+
 
 
         $return_found = array();
@@ -290,7 +271,7 @@ class ComposerUpdate
                             foreach ($local_packages[$local_packages_type] as $lpk => $local_package_item) {
 
                                 if (isset($local_package_item['dir_name'])) {
-                                    if (strtolower($local_package_item['dir_name']) == strtolower($package_folder)) {
+                                    if ($local_package_item['dir_name'] == $package_folder) {
 
                                         $is_found_on_local = true;
 
@@ -363,119 +344,21 @@ class ComposerUpdate
 
     public function installPackageByName($params)
     {
+
         if ('disabled' == $this->updateChannel) {
             return;
         }
+
+        app()->update->clear_log();
 
         $params = parse_params($params);
         $install_core_update = false;
 
         $need_confirm = true;
-        $need_confirm = true;
         $cp_files = array();
         $cp_files_fails = array();
 
 
-        /*
-        //  Unzip on chunks
-
-        if (isset($params['unzip_cache_key'])) {
-              $cache_key_for_unzip_on_chunks = $params['unzip_cache_key'];
-              $unzip_chunks_cache_data = cache_get($cache_key_for_unzip_on_chunks, 'composer-unzip');
-              if ($unzip_chunks_cache_data and isset($unzip_chunks_cache_data['chunks_file'])) {
-                  $cache_file = $unzip_chunks_cache_data['chunks_file'];
-
-                  if (is_file($cache_file)) {
-                      $cache_file_content = @json_decode(@file_get_contents($cache_file), true);
-                      $file = $unzip_chunks_cache_data['file'];
-                      $path = $unzip_chunks_cache_data['path'];
-                      if ($cache_file_content == 'done') {
-                          return;
-                      }
-
-                      if ($cache_file_content) {
-                          $chunks = $cache_file_content;
-
-
-                          if ($chunks) {
-                              $chunks_count = count($chunks);
-
-
-                              foreach ($chunks as $chunks_key => $chunks_part) {
-                                  $try_again = false;
-                                  // $this->io->writeError('    Unzip chunk ' . $chunks_key . ' of ' . $chunks_count);
-
-
-                                  set_time_limit(1200);
-                                  //ini_set('memory_limit', '1024M');
-                                  ini_set('memory_limit', '-1');
-
-
-                                  $zip = new ZipArchive();
-                                  $zip->open($file, ZipArchive::CHECKCONS);
-
-
-                                  //  $extractResult = $zip->extractTo($path, $chunks_part);
-
-                                  foreach ($chunks_part as $chunk_part_name_k=> $chunk_part_name) {
-
-                                      $file_to_save = $path . DS . $chunk_part_name;
-                                      $file_to_save = normalize_path($file_to_save, false);
-                                      $file_to_save_dn = dirname($file_to_save);
-                                      if (!is_dir($file_to_save_dn)) {
-                                          mkdir_recursive($file_to_save_dn);
-                                      }
-
-
-                                      $s = $zip->getStream($chunk_part_name);
-
-
-
-                                      $file_data = stream_get_contents($s);
-                                      file_put_contents($file_to_save, $file_data);
-
-
-                                  }
-                                  $zip->close();
-                                  unset($zip);
-                                  unset($chunks[$chunks_key]);
-
-                                  if ($chunks) {
-                                      $json = json_encode($chunks, JSON_UNESCAPED_SLASHES);
-                                      $try_again = true;
-
-
-                                  } else {
-                                      $try_again = false;
-
-                                      $json = 'done';
-                                  }
-                                  file_put_contents($cache_file, $json);
-                                  //   print $chunks_key;
-                                  mw()->update->log_msg('unzup chunk ' . $chunks_key);
-                                  //   mw()->update->log_msg('unzup chunk ' . reset($chunks_part));
-                                  //  mw()->update->log_msg('unzup chunk ' . print_r($chunks_part, 1));
-                                  mw()->update->log_msg(' ' . print_r($chunks_part, true));
-                                  //    mw()->update->log_msg('unzup chunk ' . var_dump($chunks_part));
-
-                                  return array(
-                                      'try_again' => true,
-                                      'unzip_cache_key' => $cache_key_for_unzip_on_chunks
-                                  );
-
-
-                                  break;
-
-                              }
-
-
-                          }
-                      }
-                  }
-              }
-
-
-          }*/
         $confirm_key = 'composer-confirm-key-' . rand();
 
         if (isset($params['confirm_key'])) {
@@ -505,9 +388,8 @@ class ComposerUpdate
 
         $version = strip_tags($version);
         $version = trim($version);
- ob_start();
+
         $return = $this->searchPackages($params);
-ob_end_clean();
 
         if (!$return) {
             return array('error' => 'Error. Cannot find any packages for ' . $keyword);
@@ -562,7 +444,6 @@ ob_end_clean();
                 $need_key = true;
             }
 
-
             if ($need_key) {
                 $error_text = 'You need license key';
                 if (function_exists('_e')) {
@@ -589,6 +470,18 @@ ob_end_clean();
             $composer_temp = file_get_contents($conf_temp);
             $composer_temp = json_decode($composer_temp, true);
 
+            copy($conf_temp,mw_root_path().'/cache/composer.json');
+
+            $current_composer_file = $temp_folder . '/composer.json';
+            $current_composer = file_get_contents($current_composer_file);
+            $current_composer = json_decode($current_composer, true);
+            if (isset($version_data['requires']) && is_array($version_data['requires'])) {
+                foreach ($version_data['requires'] as $requirePackage => $requireDetails) {
+                    $current_composer['require'][$requirePackage] = $requireDetails->getPrettyConstraint();
+                }
+            }
+            unset($current_composer['repositories']['packagist']); 
+            file_put_contents($current_composer_file, json_encode($current_composer));
 
             $argv = array();
             //  $argv[] = 'dry-run';
@@ -609,10 +502,7 @@ ob_end_clean();
             $io = new InstallerIO('', 32, null);
             // $io = new NullIO('', false, null);
 
-            ob_start();
             $composer = Factory::create($io);
-            ob_end_clean();
-
 
             //       $input->setOption('no-plugins',true);
 
@@ -625,20 +515,15 @@ ob_end_clean();
                 }
             }
 
-            $conf = $temp_folder . '/composer.json';
-
             $composer->setConfig($config);
-            //$update = new InstallCommand();
             $update = new \MicroweberPackages\Package\InstallCommand();
             $update->setComposer($composer);
             $update->setIO($io);
-
 
             try {
                 $out = $update->run($input, $output);
             } catch (PackageManagerUnzipOnChunksException $e) {
                 $cache_key_for_unzip_on_chunks = $e->getMessage();
-
 
                 return array(
                     'try_again' => true,
@@ -698,8 +583,6 @@ ob_end_clean();
                     }
                 }
 
-                $need_confirm = false;
-
                 if ($need_confirm) {
 
                     if (function_exists('cache_save')) {
@@ -707,9 +590,6 @@ ob_end_clean();
                     }
 
                     $error = 'Please confirm installation';
-                    if (function_exists('_e')) {
-                        $error = _e($error);
-                    }
 
                     return array(
                         'error' => $error,
@@ -731,13 +611,11 @@ ob_end_clean();
         if ($cp_files and !empty($cp_files)) {
 
             if ($install_core_update) {
-
                 if ($install_core_update) {
                     $from_folder_cp = $temp_folder . '/microweber-core-update/install-update/update/';
                     $from_folder = $from_folder_cp;
                     $from_folder = normalize_path($from_folder, true);
                 }
-
             }
 
             foreach ($cp_files as $f) {
@@ -774,12 +652,18 @@ ob_end_clean();
             if (function_exists('app') && isset(app()->update)) {
                 if ($install_core_update) {
                     app()->update->post_update($version);
-
                 } else {
                     app()->update->post_update();
                 }
             }
 
+            $s = 'skip_cache=1';
+            $s .= '&cleanup_db=1';
+            $s .= '&reload_modules=1';
+
+            $mods = scan_for_modules($s);
+
+            
             return $resp;
 
         }
@@ -954,18 +838,13 @@ ob_end_clean();
         if ($this->updateChannel == 'dev') {
             $system_repos[] = array("type" => "composer", "url" => "https://packages-dev.microweberapi.com/");
             $system_repos[] = array("type" => "composer", "url" => "https://packages-satis.microweberapi.com/");
-
-
         } else {
             $system_repos[] = array("type" => "composer", "url" => "https://packages.microweberapi.com/");
             $system_repos[] = array("type" => "composer", "url" => "https://private-packages.microweberapi.com/");
         }
 
-
-        // $system_repos = array();
-
-        //  $system_repos[] = array("type" => "composer", "url" => "https://packages-satis.microweberapi.com/");
-
+        $system_repos = array();
+        $system_repos[] = array("type" => "composer", "url" => "https://packages-satis.microweberapi.com/");
 
         $system_repos_custom = array();
 

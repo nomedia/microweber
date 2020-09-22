@@ -1,4 +1,4 @@
-<?php only_admin_access(); ?>
+<?php must_have_access(); ?>
 <script type="text/javascript">
     mw.require('<?php print $config['url_to_module'] ?>style.css', true);
     mw.require('<?php print $config['url_to_module'] ?>comments_admin.js');
@@ -124,9 +124,7 @@ mw()->notifications_manager->mark_as_read('comments');
                                 <?php _e("Read, moderate & publish comments"); ?>
                             </small>
                         </div>
-                        <input
-                                autocomplete="off"
-                                type="search"
+                        <input autocomplete="off" type="search"
                                 class="mw-ui-searchfield"
                                 placeholder="<?php _e("Search comments"); ?>"
                                 onkeyup="$(this).addClass('active'); mw.form.dstatic(event);mw.on.stopWriting(this, function(){mw.url.windowHashParam('search', this.value)});"
